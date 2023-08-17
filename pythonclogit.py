@@ -1,13 +1,9 @@
 import numpy as np
 import pandas as pd
 
-
-def q_sum(mat_to_sum):
-    return np.sum(mat_to_sum, axis = 1, keepdims = True)
-
 def LL(p, model, y, group):
     #compute xb for each horse
-    xb = np.exp(q_sum(p*model))
+    xb = np.exp(np.sum(p*model, axis = 1, keepdims = True))
     
     ##Sum xb, by group (race)
     unique_groups = np.unique(group)
