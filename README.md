@@ -61,7 +61,7 @@ def ddLL(p, model, y, group, i, j):
 Based on this equation:
 $$\frac{\partial^2 L}{\partial \theta \partial \theta^{\prime}} = -\sum_{n = 1}^N \sum_{j = 1}^{J_n} (z_{jn} - \overline{z_n})^{\prime}  P_{jn} (z_{jn} - \overline{z_n})$$
 where 
-$$\overline{z_n} = \sum_{i=1}^{J_n} z_{in}P{in}$$
+$$\overline{z_n} = \sum_{i=1}^{J_n} z_{in}P_{in}$$
 Next, the Jacobian function which no doubt can be written more compactly:
 ```
 def jacobian(p, model, y, group):
