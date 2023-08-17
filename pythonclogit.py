@@ -100,10 +100,10 @@ while np.any(abs(error) > tol) and iteration < max_iter:
     jac = jacobian(x_0, model, y, group)
     print(jac)
     
-    x_new = x_0.reshape(-1, 1) - np.linalg.inv(jac) @ fun_evaluate
+    x_new = (x_0.reshape(-1, 1) - np.linalg.inv(jac) @ fun_evaluate).flatten()
 
-    error = x_new.flatten() - x_0
-    x_0 = x_new.flatten()
+    error = x_new - x_0
+    x_0 = x_new
 
     print("guess")
     print(x_0)
