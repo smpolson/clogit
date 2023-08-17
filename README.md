@@ -38,7 +38,7 @@ def dLL(p, model, y, group, index):
     return np.sum(dLL)
 ```
 Relevant equation:
-$\frac{\partial L}{\partial \theta} = \sum_{n = 1}^N [\sum_{j = 1}^{J_n} (S_{jn} - P_{jn})z_{jn}]$
+$$\frac{\partial L}{\partial \theta} = \sum_{n = 1}^N [\sum_{j = 1}^{J_n} (S_{jn} - P_{jn})z_{jn}]$$
 Next, this is the second partial of the log likelihood function as in equation 20 of McFadden (1974) paper.
 ```
 def ddLL(p, model, y, group, i, j):
@@ -59,9 +59,9 @@ def ddLL(p, model, y, group, i, j):
     return -np.sum(ddLL)
 ```
 Based on this equation:
-$\frac{\partial^2 L}{\partial \theta \partial \theta^{\prime}} = -\sum_{n = 1}^N \sum_{j = 1}^{J_n} (z_{jn} - \bar{z}_{n})^{\prime} P_{jn}(z_{jn} - \bar{z}_{n})$
+$$\frac{\partial^2 L}{\partial \theta \partial \theta^{\prime}} = -\sum_{n = 1}^N \sum_{j = 1}^{J_n} (z_{jn} - \bar{z}_{n})^{\prime} P_{jn}(z_{jn} - \bar{z}_{n})$$
 where 
-$\bar{z}_{n} = \sum_{i=1}^{J_n} z_{in}P{in}$
+$$\bar{z}_{n} = \sum_{i=1}^{J_n} z_{in}P{in}$$
 Next, Jacobian function which no doubt can be written more compactly:
 ```
 def jacobian(p, model, y, group):
