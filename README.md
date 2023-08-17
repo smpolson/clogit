@@ -59,10 +59,10 @@ def ddLL(p, model, y, group, i, j):
     return -np.sum(ddLL)
 ```
 Based on this equation:
-$$\frac{\partial^2 L}{\partial \theta \partial \theta^{\prime}} = -\sum_{n = 1}^N \sum_{j = 1}^{J_n} (z_{jn} - \bar{z}_{n})^{\prime} P_{jn}(z_{jn} - \bar{z}_{n})$$
+$$\frac{\partial^2 L}{\partial \theta \partial \theta^{\prime}} = -\sum_{n = 1}^N \sum_{j = 1}^{J_n} (z_{jn} - \overline{z_n})^{\prime}  P_{jn} (z_{jn} - \overline{z_n})$$
 where 
-$$\bar{z}_{n} = \sum_{i=1}^{J_n} z_{in}P{in}$$
-Next, Jacobian function which no doubt can be written more compactly:
+$$\overline{z_n} = \sum_{i=1}^{J_n} z_{in}P{in}$$
+Next, the Jacobian function which no doubt can be written more compactly:
 ```
 def jacobian(p, model, y, group):
     N = len(p)
