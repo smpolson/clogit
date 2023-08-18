@@ -62,8 +62,11 @@ def ddLL(p, model, y, group, i):
     for item in unique_groups:
         group_indices = np.where(group == item)[0]
         z_avg = (model[group_indices]).T @ P[group_indices]
-        ddLL.append(np.subtract(model[group_indices][i], z_avg[i]).T * (P[group_indices].T @ (np.subtract(model[group_indices], z_avg.T))))
-    
+        first = np.subtract((model[group_indices].T)[i], z_avg[i])
+        first = np.tile(first, (2, 1)).T
+        second = np.tile(P[group_indices], (2, 1)).T
+        ddLL.append(np.sum(first * second * (np.subtract(model[group_indices], z_avg.T)), axis = 0))
+
     return -np.sum(ddLL, axis = 0)
 
 def jacobian(p, model, y, group):
