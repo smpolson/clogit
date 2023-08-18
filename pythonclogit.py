@@ -39,10 +39,9 @@ def dLL(p, model, y, group):
     unique_groups = np.unique(group)
     dLL = []
     S = y
-    S_reshaped = np.tile(S, (1, 2))
     for item in unique_groups:
         group_indices = np.where(group == item)[0]
-        dLL.append(np.sum(((S_reshaped[group_indices] - P[group_indices]) * (model[group_indices])), axis = 0))
+        dLL.append(np.sum(((S[group_indices] - P[group_indices]) * (model[group_indices])), axis = 0))
 
     return np.sum(dLL, axis = 0)
 
