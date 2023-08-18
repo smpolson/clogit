@@ -39,9 +39,9 @@ def dLL(p, model, y, group):
     unique_groups = np.unique(group)
     dLL = []
     for item in unique_groups:
-        S = y.T * model.T
+        S = y * model
         group_indices = np.where(group == item)[0]
-        dLL.append(np.sum((S.T[group_indices] - P[group_indices]).T @ (model[group_indices]), axis = 0))
+        dLL.append(np.sum((S[group_indices] - P[group_indices]).T @ (model[group_indices]), axis = 0))
     return np.sum(dLL, axis = 0)
 
 # i index denotes the first beta the differentiation is with respect to
