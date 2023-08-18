@@ -44,9 +44,9 @@ def dLL(p, model, y, group):
         dLL.append(np.sum((S.T[group_indices] - P[group_indices]).T @ (model[group_indices]), axis = 0))
     return np.sum(dLL, axis = 0)
 
-# i and j indices denote which two betas the differentiation is with respect to
+# i index denotes the first beta the differentiation is with respect to
 # equation 20 of McFadden
-def ddLL(p, model, y, group, i, j):
+def ddLL(p, model, y, group, i):
     # Calculating P vector, used this method to avoid exp overflow
     max_utility = np.max(p @ model.T)
     scaled_utilities = np.exp((p @ model.T) - max_utility)
@@ -60,19 +60,17 @@ def ddLL(p, model, y, group, i, j):
     ddLL = []
     for item in unique_groups:
         group_indices = np.where(group == item)[0]
-        z_avg_i = (model.T[i][group_indices] * P[group_indices]).sum()
-        z_avg_j = (model.T[j][group_indices] * P[group_indices]).sum()
-        ddLL.append((np.subtract(model.T[j][group_indices], z_avg_j)) * P[group_indices] @ (np.subtract(model.T[i][group_indices], z_avg_i)))
+        z_avg = (model[group_indices]).T @ P[group_indices]
+        ddLL.append(np.subtract(model[group_indices][i], z_avg[i]).T * (P[group_indices].T @ (np.subtract(model[group_indices], z_avg.T))))
     
-    return -np.sum(ddLL)
+    return -np.sum(ddLL, axis = 0)
 
 def jacobian(p, model, y, group):
     N = len(p)
     jac = np.empty((N, N))
     for i in range(N):
-        for j in range(N):
-            ddLL_i = ddLL(p, model, y, group, i, j)
-            jac[i][j] = ddLL_i
+        ddLL_i = ddLL(p, model, y, group, i)
+        jac[i] = ddLL_i
     return jac
 
 df = pd.read_stata("E:/Horses/Analysis/2023.08.05 clogit investigation/Data/python input.dta")
