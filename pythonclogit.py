@@ -24,9 +24,8 @@ def LL(p, model, y, group):
     # print(np.sum(LL))
     return np.sum(LL)
 
-# index denotes which beta differentiation is with respect to
-# equation 19 of McFadden
-def dLL(p, model, y, group, index):
+# equation 19 of McFadden, returns vector of length equal to number of weights
+def dLL(p, model, y, group):
     # Calculating P vector, used this method to avoid exp overflow
     max_utility = np.max(p @ model.T)
     scaled_utilities = np.exp((p @ model.T) - max_utility)
@@ -34,17 +33,16 @@ def dLL(p, model, y, group, index):
     log_denominator = np.log(denominator) + max_utility
     log_probabilities = (p @ model.T) - log_denominator
     P = np.exp(log_probabilities)
+    P = P[:, np.newaxis]
     
     ##Sum xb, by group (race)
     unique_groups = np.unique(group)
     dLL = []
     for item in unique_groups:
-        S = y.T * model.T[index]
+        S = y.T * model.T
         group_indices = np.where(group == item)[0]
-        dLL.append(((S.T[group_indices]-P[group_indices]) @ model.T[index][group_indices]).sum())
-        
-    # print(np.shape(dLL))
-    return np.sum(dLL)
+        dLL.append(np.sum((S.T[group_indices] - P[group_indices]).T @ (model[group_indices]), axis = 0))
+    return np.sum(dLL, axis = 0)
 
 # i and j indices denote which two betas the differentiation is with respect to
 # equation 20 of McFadden
@@ -95,7 +93,7 @@ x_0 = np.array([0, 0],dtype=float)
 print(np.shape(x_0))
 # Iterating until either the tolerance or max iterations is met
 while np.any(abs(error) > tol) and iteration < max_iter:
-    fun_evaluate = np.array([dLL(x_0, model, y, group, 0), dLL(x_0, model, y, group, 1)]).reshape(M, 1)
+    fun_evaluate = np.array([dLL(x_0, model, y, group)]).reshape(M, 1)
     
     jac = jacobian(x_0, model, y, group)
     print(jac)
