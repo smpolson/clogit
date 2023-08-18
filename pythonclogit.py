@@ -25,10 +25,10 @@ def LL(p, model, y, group):
     return np.sum(LL)
 
 # equation 19 of McFadden, returns vector of length equal to number of weights
-def dLL(p, model, y, group):
+def dLL(p, model, y, group):    
     # Calculating P vector, used this method to avoid exp overflow
-    max_utility = np.max(p @ model.T)
-    scaled_utilities = np.exp((p @ model.T) - max_utility)
+    max_utility = np.max(model @ p)
+    scaled_utilities = np.exp((model @ p) - max_utility)
     denominator = np.sum(scaled_utilities)
     log_denominator = np.log(denominator) + max_utility
     log_probabilities = (p @ model.T) - log_denominator
@@ -38,10 +38,12 @@ def dLL(p, model, y, group):
     ##Sum xb, by group (race)
     unique_groups = np.unique(group)
     dLL = []
-    S = y * model
+    S = y
+    S_reshaped = np.tile(S, (1, 2))
     for item in unique_groups:
         group_indices = np.where(group == item)[0]
-        dLL.append(np.sum((S[group_indices] - P[group_indices]).T @ (model[group_indices]), axis = 0))
+        dLL.append(np.sum(((S_reshaped[group_indices] - P[group_indices]).T @ (model[group_indices])), axis = 0))
+
     return np.sum(dLL, axis = 0)
 
 # i index denotes the first beta the differentiation is with respect to
