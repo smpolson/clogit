@@ -48,22 +48,22 @@ def dLL(p, model, y, group):
 # equation 20 of McFadden
 def ddLL(p, model, y, group, i):
     # Calculating P vector, used this method to avoid exp overflow
-    max_utility = np.max(p @ model.T)
-    scaled_utilities = np.exp((p @ model.T) - max_utility)
-    denominator = np.sum(scaled_utilities)
-    log_denominator = np.log(denominator) + max_utility
-    log_probabilities = (p @ model.T) - log_denominator
-    P = np.exp(log_probabilities)
+    unique_groups = np.unique(group)
+    P = np.empty_like(model)
+    for item in unique_groups:
+        group_indices = np.where(group == item)[0]
+        denominator = np.sum(np.exp(model[group_indices] @ p), axis=0)
+        P[group_indices] = np.exp(model[group_indices] @ p)[:, np.newaxis] / denominator
     
     # Calculate ddLL
     unique_groups = np.unique(group)
     ddLL = []
     for item in unique_groups:
         group_indices = np.where(group == item)[0]
-        z_avg = (model[group_indices]).T @ P[group_indices]
+        z_avg = np.sum(model[group_indices] * P[group_indices], axis = 0)
         first = np.subtract((model[group_indices].T)[i], z_avg[i])
         first = np.tile(first, (2, 1)).T
-        second = np.tile(P[group_indices], (2, 1)).T
+        second = P[group_indices]
         ddLL.append(np.sum(first * second * (np.subtract(model[group_indices], z_avg.T)), axis = 0))
 
     return -np.sum(ddLL, axis = 0)
