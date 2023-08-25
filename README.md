@@ -94,8 +94,8 @@ while np.any(abs(error) > tol) and iteration < max_iter:
 ```
 
 ## Rologit Code Breakdown
-**editing**
-First, we have obj(p, model, y, group), dLL(p, model, y, group), ddLL(p, model, y, group, i) functions which are all identical their clogit implementations.
+The general structure of the rologit implementation is to use the clogit functions with alterend inputs to calculate values for the "race for first" and subsequently the "race for second". Here, the "place" variable is 2 if the given horse won, 1 if the horse placed second, and 0 otherwise. Note that currently I've hardcoded everything to work with only places first and second, but can change this to make the place variable of arbitrary format.
+First, we have obj(p, model, y, group), dLL(p, model, y, group), ddLL(p, model, y, group, i) functions which are all identical their clogit implementations. Next, here is the data_prep method which removes the horses from the data whos place is equal to value.
 ```
 def data_prep(value, model, group, ranks):
     opponents2 = np.where(ranks != value, 1, 0).flatten()
