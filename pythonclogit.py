@@ -3,9 +3,9 @@ import pandas as pd
 
 def LL(p, model, y, group):
     #compute xb for each horse
-    xb = np.exp(np.sum(p*model, axis = 1, keepdims = True))
+    xb = np.exp(np.sum((p*model), axis = 1, keepdims = True))
     
-    ##Sum xb, by group (race)
+    # Sum xb, by group (race)
     unique_groups = np.unique(group)
     LL_p2 = []
     for item in unique_groups:
@@ -20,8 +20,6 @@ def LL(p, model, y, group):
         
     #compute LL    
     LL = np.subtract(LL_p1, LL_p2) 
-    # LL = -1*np.sum(LL) # no longer using minimize so do not need use -LL
-    # print(np.sum(LL))
     return np.sum(LL)
 
 # equation 19 of McFadden, returns vector of length equal to number of weights
@@ -34,7 +32,7 @@ def dLL(p, model, y, group):
         denominator = np.sum(np.exp(model[group_indices] @ p), axis=0)
         P[group_indices] = np.exp(model[group_indices] @ p)[:, np.newaxis] / denominator
     
-    ##Sum xb, by group (race)
+    # dLL calculation
     unique_groups = np.unique(group)
     dLL = []
     S = y
@@ -62,7 +60,7 @@ def ddLL(p, model, y, group, i):
         group_indices = np.where(group == item)[0]
         z_avg = np.sum(model[group_indices] * P[group_indices], axis = 0)
         first = np.subtract((model[group_indices].T)[i], z_avg[i])
-        first = np.tile(first, (2, 1)).T
+        first = np.tile(first, (len(p), 1)).T
         second = P[group_indices]
         ddLL.append(np.sum(first * second * (np.subtract(model[group_indices], z_avg.T)), axis = 0))
 
@@ -82,15 +80,19 @@ print(df.columns)
 y = df[['win']].to_numpy()
 group = df[['race_id']].to_numpy()
 model = df[['ln_implied_prob', 'ema_past_bsn_n']].to_numpy()
+# p = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],dtype=float)
+p = np.array([0, 0],dtype=float)
+
 
 iteration = 0
 error = 100
-tol = 0.00000001  # Tolerance
+tol = 0.0000001  # Tolerance
 max_iter = 50  # Max iterations
 
-N = 2
-M = 2
-x_0 = np.array([0, 0],dtype=float)
+x_0 = np.zeros(len(p),dtype=float)
+
+N = len(x_0)
+M = len(x_0)
 print(np.shape(x_0))
 # Iterating until either the tolerance or max iterations is met
 while np.any(abs(error) > tol) and iteration < max_iter:
@@ -112,7 +114,15 @@ while np.any(abs(error) > tol) and iteration < max_iter:
     iteration = iteration + 1
 
 print("The solution is")
-print(x_new)
+
+headers = ["ln_implied_prob:", "pole_adj_track_new:", "pole_adj_main:", "ema_past_bsn_n:", "combo_th:",
+           "prev_glicko1:", "prev_glicko2:", "prev_glicko3:", "gap_bsn_surf0:","gap_bsn_surf1:", "mean_jockey_gap_p1:",
+           "mean_jockey_gap_p2:", "L1_weight_dif_l3r_avg1:", "L1_weight_dif_l3r_avg2:", "max_org_bsn_L60:", "max_org_bsn_L61:"]
+
+max_header_length = max(len(header) for header in headers)
+
+for header, value in zip(headers, x_new):
+    print(f"{header:<{max_header_length}} | {value}")
 
 
 #EOF#
