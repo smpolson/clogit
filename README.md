@@ -1,9 +1,9 @@
 # Clogit + Rologit Python Replication
-** Still editing **
-[Clogit File Breakdown](#clogit-code-breakdown)
-[Rologit File Breakdown](#rologit-code-breakdown)
+** Still editing ** <br />
+[Clogit File Breakdown](#clogit-code-breakdown) <br />
+[Rologit File Breakdown](#rologit-code-breakdown) <br />
 ## Build Status
-One iteration of the NR loop successfully runs before on the second loop the Jacobian matrix is all zeros, which breaks the loop. This most likely is the result of an error within dLL and/or ddLL implementations.
+Currently working on finding optimial temperature parameter for rologit implementation. Temperature is hard coded right now.
 ## Clogit Code Breakdown
 First, here is the log likelihood function. This is a direct replication of the function stata's clogit command uses and confirmed that this matches with stata's implementation.
 ```
