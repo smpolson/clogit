@@ -96,6 +96,41 @@ while np.any(abs(error) > tol) and iteration < max_iter:
 ## Rologit Code Breakdown
 The general structure of the rologit implementation is to use the clogit functions with alterend inputs to calculate values for the "race for first" and subsequently the "race for second". Here, the "place" variable is 2 if the given horse won, 1 if the horse placed second, and 0 otherwise. Note that currently I've hardcoded everything to work with only places first and second, but can change this to make the place variable of arbitrary format.
 First, we have obj(p, model, y, group), dLL(p, model, y, group), ddLL(p, model, y, group, i) functions which are all identical their clogit implementations. Next, here is the data_prep method which removes the horses from the data whos place is equal to value.
+
+
+Note: I tried for a while to directly implement the log likelihood function from rologit in stata. If you want to play around with it, here it is. The reason I abandonned it was I could'nt get the log likelihood to agree with Stata's, even though the equation is referenced in Stata's documentation for its rologit function. 
+```
+def rLL(weights, model, ranks, group):
+    # compute mu for each horse
+    mu = np.sum(weights*model, axis = 1, keepdims = True)
+    
+    #sum xb for LL fxn
+    unique_groups = np.unique(group)
+    LL_p1 = []
+    for item in unique_groups:
+        LL_p1.append((mu[group == item]).sum())
+    
+    ##Sum xb, by group (race) only if rank of horse k worse than rank of horse j
+    LL_p2 = []
+    for item in unique_groups:
+        intermediate = []
+        indices = np.where(group == item)[0]
+        for j in indices:
+            race_sum = []
+            for k in indices:
+                if ranks[k] <= ranks[j]:
+                    race_sum.append(np.exp(mu[k]))
+            intermediate.append(np.log(np.sum(race_sum)))
+        LL_p2.append(np.sum((intermediate)))
+    
+    #compute LL    
+    LL = np.sum(np.subtract(LL_p1, LL_p2), axis = 0)
+    return LL
+```
+^^ This above snippet is not in the code, but I just wanted to include it in case it is important in the future. Again, here is the function (equaiton (7) from Allison and Christakis (1994)), which Stata references:
+$$\log(L) = \sum_{i = 1}^n \sum_{j = 1}^{J_i} \mu_{ij} - \sum_{i = 1}^n \sum_{j = 1}^{J_i} \log \left[ \sum_{k = 1}^{J_i} \delta_{ijk} \exp(\mu_{ik}) \right]$$
+where $$\delta_{ijk} = 1$$ if the rank of horse k is worse than (or equal to) the rank of horse j in race i.
+
 ```
 def data_prep(value, model, group, ranks):
     opponents2 = np.where(ranks != value, 1, 0).flatten()
