@@ -1,5 +1,4 @@
 # Clogit + Rologit Python Replication
-** Still editing **\
 [Clogit File Breakdown](#clogit-code-breakdown)\
 [Rologit File Breakdown](#rologit-code-breakdown)
 ## Build Status
@@ -94,11 +93,7 @@ while np.any(abs(error) > tol) and iteration < max_iter:
 ```
 
 ## Rologit Code Breakdown
-The general structure of the rologit implementation is to use the clogit functions with alterend inputs to calculate values for the "race for first" and subsequently the "race for second". Here, the "place" variable is 2 if the given horse won, 1 if the horse placed second, and 0 otherwise. Note that currently I've hardcoded everything to work with only places first and second, but can change this to make the place variable of arbitrary format.
-First, we have obj(p, model, y, group), dLL(p, model, y, group), ddLL(p, model, y, group, i) functions which are all identical their clogit implementations. Next, here is the data_prep method which removes the horses from the data whos place is equal to value.
-
-
-Note: I tried for a while to directly implement the log likelihood function from rologit in stata. If you want to play around with it, here it is. The reason I abandonned it was I could'nt get the log likelihood to agree with Stata's, even though the equation is referenced in Stata's documentation for its rologit function. 
+The general structure of the rologit implementation is to use the clogit functions with altered inputs to calculate values for log likelihood and its partials. Note: Initially, I tried for a while to directly implement the log likelihood function from Stata's rologit documentation. I included it below just in case it is important in the future, but it is not in pythonrologity.py. The reason I abandonned it was I couldn't get the log likelihood to agree with Stata's:
 ```
 def rLL(weights, model, ranks, group):
     # compute mu for each horse
@@ -127,10 +122,13 @@ def rLL(weights, model, ranks, group):
     LL = np.sum(np.subtract(LL_p1, LL_p2), axis = 0)
     return LL
 ```
-^^ This above snippet is not in the code, but I just wanted to include it in case it is important in the future. Again, here is the function (equaiton (7) from Allison and Christakis (1994)), which Stata references:
+Again, here is the function (equaiton (7) from Allison and Christakis (1994)), which Stata references:
 $$\log(L) = \sum_{i = 1}^n \sum_{j = 1}^{J_i} \mu_{ij} - \sum_{i = 1}^n \sum_{j = 1}^{J_i} \log \left[ \sum_{k = 1}^{J_i} \delta_{ijk} \exp(\mu_{ik}) \right]$$
-where $\delta_{ijk} = 1$ if the rank of horse k is worse than (or equal to) the rank of horse j in race i.
-
+where $\delta_{ijk} = 1$ if the rank of horse k is worse than (or equal to) the rank of horse j in race i.\
+\
+Instead, right now the structure of the code is to calculate LL and the derivatives for the "race for first" and subsequently the "race for second". In order to do so, the "place" variable imported from Stata is 2 if the given horse won, 1 if the horse placed second, and 0 otherwise. Note that the code is currently compatible with a simple "win" variable equivalent to the clogit case as well as the "place" variable specified exactly as in the previous sentence. It is not difficult to make it compatible with "place" variable of any format (where the best place is given the highest value etc.), meaning to also take into account third place etc., I just have not done this yet.\
+\
+To calculate LL + partial derivative values for the "race for second", I simply remove horses that won from the data, and put this back in to the corresponding clogit functions. Here is this "data prep" step:
 ```
 def data_prep(value, model, group, ranks):
     opponents2 = np.where(ranks != value, 1, 0).flatten()
@@ -139,7 +137,7 @@ def data_prep(value, model, group, ranks):
     ranks = ranks[opponents2 == 1]
     return model, group, ranks
 ```
-and then rLL, rdLL, rddLL are all of the same structure... using the "data_prep" function and the clogit helper functions to first perform "first race" calculation and subsequently "second race" calculation. Temperature is hard coded here to update the model before each calculation.
+The functions rLL, rdLL, rddLL are all of the same structure. They first perform "first race" calculation and then use this "data_prep" function in order to do the "second race" calculation. Temperature is hard coded here to update the model before each calculation.
 ```
 def rLL(weights, model, ranks, group):
     # note, should make a loop later, but currently should work for first and second
@@ -159,4 +157,4 @@ def rLL(weights, model, ranks, group):
         return LL
     return LL
 ```
-Otherwise, the structure is the same as clogit in terms of solving for minimum via NR loop.
+Otherwise, the structure is the same as clogit in terms of solving for minimum via NR loop. Currently, I am changing the format of the functions so that temperature is a variable that can be solved for, much like the weights in p.
