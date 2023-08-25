@@ -95,3 +95,33 @@ while np.any(abs(error) > tol) and iteration < max_iter:
 
 ## Rologit Code Breakdown
 **editing**
+First, we have obj(p, model, y, group), dLL(p, model, y, group), ddLL(p, model, y, group, i) functions which are all identical their clogit implementations.
+```
+def data_prep(value, model, group, ranks):
+    opponents2 = np.where(ranks != value, 1, 0).flatten()
+    model = model[opponents2 == 1]
+    group = group[opponents2 == 1]
+    ranks = ranks[opponents2 == 1]
+    return model, group, ranks
+```
+and then rLL, rdLL, rddLL are all of the same structure... using the "data_prep" function and the clogit helper functions to first perform "first race" calculation and subsequently "second race" calculation. Temperature is hard coded here to update the model before each calculation.
+```
+def rLL(weights, model, ranks, group):
+    # note, should make a loop later, but currently should work for first and second
+    num_iter = np.max(ranks)
+    assert(num_iter == 2)
+    LL = 0
+    first = np.where(ranks == num_iter, 1, 0)
+    modelT1 = model / T1
+    LL += obj(weights, modelT1, first, group)
+    model, group, ranks = data_prep(num_iter, model, group, ranks)
+    if np.max(ranks) == 0:
+        return LL
+    second = np.where(ranks == num_iter - 1, 1, 0)
+    modelT2 = model / T2
+    LL += obj(weights, modelT2, second, group)
+    if np.max(ranks) == 0:
+        return LL
+    return LL
+```
+Otherwise, the structure is the same as clogit in terms of solving for minimum via NR loop.
