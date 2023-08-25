@@ -1,8 +1,10 @@
-# Clogit Python Replication
+# Clogit + Rologit Python Replication
 ** Still editing **
+[Clogit File Breakdown](#clogit-code-breakdown)
+[Rologit File Breakdown](#rologit-code-breakdown)
 ## Build Status
 One iteration of the NR loop successfully runs before on the second loop the Jacobian matrix is all zeros, which breaks the loop. This most likely is the result of an error within dLL and/or ddLL implementations.
-## Code Breakdown
+## Clogit Code Breakdown
 First, here is the log likelihood function. This is a direct replication of the function stata's clogit command uses and confirmed that this matches with stata's implementation.
 ```
 def LL(p, model, y, group):
@@ -83,3 +85,6 @@ while np.any(abs(error) > tol) and iteration < max_iter:
     x_0 = x_new
     iteration = iteration + 1
 ```
+
+## Rologit Code Breakdown
+**editing**
