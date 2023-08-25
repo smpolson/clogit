@@ -129,7 +129,7 @@ def rLL(weights, model, ranks, group):
 ```
 ^^ This above snippet is not in the code, but I just wanted to include it in case it is important in the future. Again, here is the function (equaiton (7) from Allison and Christakis (1994)), which Stata references:
 $$\log(L) = \sum_{i = 1}^n \sum_{j = 1}^{J_i} \mu_{ij} - \sum_{i = 1}^n \sum_{j = 1}^{J_i} \log \left[ \sum_{k = 1}^{J_i} \delta_{ijk} \exp(\mu_{ik}) \right]$$
-where $$\delta_{ijk} = 1$$ if the rank of horse k is worse than (or equal to) the rank of horse j in race i.
+where $\delta_{ijk} = 1$ if the rank of horse k is worse than (or equal to) the rank of horse j in race i.
 
 ```
 def data_prep(value, model, group, ranks):
