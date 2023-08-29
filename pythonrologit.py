@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
 
-a = 0.0
 T1 = 1.0
-T2 = np.exp(a)
+T2 = 1.0
 
 def obj(p, model, y, group):
     #compute xb for each horse
@@ -36,6 +35,9 @@ def data_prep(value, model, group, ranks):
     return model, group, ranks
 
 def rLL(weights, model, ranks, group):
+    temperature = weights[0]
+    weights = weights[1:]
+    
     # note, should make a loop later, but currently should work for first and second
     num_iter = np.max(ranks)
     assert(num_iter == 2)
@@ -53,7 +55,7 @@ def rLL(weights, model, ranks, group):
         return LL
     
     second = np.where(ranks == num_iter - 1, 1, 0)
-    modelT2 = model / T2
+    modelT2 = model * temperature
     LL += obj(weights, modelT2, second, group)
     
     if np.max(ranks) == 0:
@@ -81,15 +83,41 @@ def dLL(p, model, y, group):
         
     return np.sum(dLL, axis = 0)
 
+
+def dT(temperature, p, model, y, group):
+    beta = 1 * temperature
+    
+    # Calculating P vector
+    unique_groups = np.unique(group)
+    P = np.empty_like(model)
+    for item in unique_groups:
+        group_indices = np.where(group == item)[0]
+        denominator = np.sum(np.exp(beta * (model[group_indices] @ p)), axis=0)
+        P[group_indices] = np.exp(beta * (model[group_indices] @ p))[:, np.newaxis] / denominator
+    
+    ##Sum xb, by group (race)
+    unique_groups = np.unique(group)
+    dLL = []
+    S = y
+    for item in unique_groups:
+        group_indices = np.where(group == item)[0]
+        dLL.append(np.sum(((S[group_indices] - P[group_indices]) * (model[group_indices])), axis = 0))
+        
+    # so here I choose to sum all of them to fix the dimension issue, but this could be wrong
+    return np.sum(np.sum(dLL, axis = 0), axis = 0)
+
+
 def rdLL(weights, model, ranks, group):
+    temperature = weights[0]
+    dLL2 = np.zeros(len(weights))
+    weights = weights[1:]
+    
     # note, should make a loop later, but currently should work for first and second
     num_iter = np.max(ranks)
-
-
-    dLL2 = 0
+    
     first = np.where(ranks == num_iter, 1, 0)
     modelT1 = model / T1
-    dLL2 += dLL(weights, modelT1, first, group)
+    dLL2[1:] += dLL(weights, modelT1, first, group)
     
     # now prep for second
     model, group, ranks = data_prep(num_iter, model, group, ranks)
@@ -97,13 +125,16 @@ def rdLL(weights, model, ranks, group):
     if np.max(ranks) == 0:
         return dLL2
     
+    # to calculate
+    dLL2[0] += dT(temperature, weights, model, ranks, group)
+    
     second = np.where(ranks == num_iter - 1, 1, 0)
-    modelT2 = model / T2
-    dLL2 += dLL(weights, modelT2, second, group)
+    modelT2 = model * temperature
+    dLL2[1:] += dLL(weights, modelT2, second, group)
     
     if np.max(ranks) == 0:
         return dLL2
-
+    
     return dLL2
 
 # equation 20 of McFadden
@@ -129,25 +160,87 @@ def ddLL(p, model, y, group, i):
 
     return -np.sum(ddLL, axis = 0)
 
+
+def ddT(temperature, p, model, y, group, i):
+    beta = 1 * temperature
+
+    # Calculating P vector, used this method to avoid exp overflow
+    unique_groups = np.unique(group)
+    P = np.empty_like(model)
+    for item in unique_groups:
+        group_indices = np.where(group == item)[0]
+        denominator = np.sum(np.exp(beta *(model[group_indices] @ p)), axis=0)
+        P[group_indices] = np.exp(beta * (model[group_indices] @ p))[:, np.newaxis] / denominator
+    
+    # Calculate ddLL
+    unique_groups = np.unique(group)
+    ddLL = []
+    for item in unique_groups:
+        group_indices = np.where(group == item)[0]
+        z_avg = np.sum(model[group_indices] * P[group_indices], axis = 0)
+        first = np.subtract((model[group_indices].T)[i], z_avg[i])
+        first = np.tile(first, (len(p), 1)).T
+        second = P[group_indices]
+        ddLL.append(np.sum(first * second * (np.subtract(model[group_indices], z_avg.T)), axis = 0))
+        
+    return -np.sum(np.sum(ddLL, axis = 0), axis = 0)
+    
+    
+def ddTrow(temperature, p, model, y, group, i):
+    beta = 1 * temperature
+    ddT = np.zeros(len(p) + 1)
+    
+    unique_groups = np.unique(group)
+    P = np.empty_like(model)
+    for item in unique_groups:
+        group_indices = np.where(group == item)[0]
+        denominator = np.sum(np.exp(beta *(model[group_indices] @ p)), axis=0)
+        P[group_indices] = np.exp(beta * (model[group_indices] @ p))[:, np.newaxis] / denominator
+
+    # Calculate ddLL
+    unique_groups = np.unique(group)
+    ddLL = []
+    for item in unique_groups:
+        group_indices = np.where(group == item)[0]
+        z_avg = np.sum(model[group_indices] * P[group_indices], axis = 0)
+        first = np.subtract((np.sum(model[group_indices].T, axis = 1)), z_avg)
+        first = np.tile(first, (len(p), 1)).T
+        second = P[group_indices]
+        ddLL.append(np.sum(first * np.sum(second, axis = 0).T * (np.subtract((np.sum(model[group_indices].T, axis = 1)), z_avg.T)), axis = 0))
+        
+    ddT[0] += -np.sum(np.sum(ddLL, axis = 0), axis = 0)
+    ddT[1:] += -np.sum(ddLL, axis = 0)
+    return ddT
+
+
 def rddLL(weights, model, ranks, group, i):
+    temperature = weights[0]
+    ddLL2 = np.zeros(len(weights))
+    weights = weights[1:]
+    
     # note, should make a loop later, but currently should work for first and second
     num_iter = np.max(ranks)
-
-
-    ddLL2 = 0
-    first = np.where(ranks == num_iter, 1, 0)
-    modelT1 = model / T1
-    ddLL2 += ddLL(weights, modelT1, first, group, i)
+    i = i - 1
+    if i >= 0:
+        first = np.where(ranks == num_iter, 1, 0)
+        modelT1 = model / T1
+        ddLL2[1:] += ddLL(weights, modelT1, first, group, i)
     
     # now prep for second
     model, group, ranks = data_prep(num_iter, model, group, ranks)
 
     if np.max(ranks) == 0:
         return ddLL2
-    
+    i = i + 1
+
     second = np.where(ranks == num_iter - 1, 1, 0)
-    modelT2 = model / T2
-    ddLL2 += ddLL(weights, modelT2, second, group, i)
+    if i == 0:
+        ddLL2 += ddTrow(temperature, weights, model, second, group, i)
+        return ddLL2
+    i -= 1
+    ddLL2[0] += ddT(temperature, weights, model, second, group, i)
+    modelT2 = model * temperature
+    ddLL2[1:] += ddLL(weights, modelT2, second, group, i)
     
     if np.max(ranks) == 0:
         return ddLL2
@@ -158,9 +251,11 @@ def rjacobian(p, model, place, group):
     N = len(p)
     jac = np.empty((N, N))
     for i in range(N):
+        print(i)
         rddLL_i = rddLL(p, model, place, group, i)
         jac[i] = rddLL_i
     return jac
+
 
 
 df = pd.read_stata("E:/Horses/Analysis/2023.08.05 clogit investigation/Data/python input.dta")
@@ -171,9 +266,8 @@ group = df[['race_id']].to_numpy()
 #model = df[['ln_implied_prob', 'ema_past_bsn_n']].to_numpy()
 place = df[['place']].to_numpy()
 
-p = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],dtype=float)
-
-
+# first index denotes temperature
+p = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],dtype=float)
 
 iteration = 0
 error = 100
@@ -181,7 +275,8 @@ tol = 0.0000001  # Tolerance
 max_iter = 50  # Max iterations
 
 
-x_0 = np.zeros(len(p),dtype=float)
+#x_0 = np.zeros(len(p),dtype=float)
+x_0 = np.array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],dtype=float)
 
 N = len(x_0)
 M = len(x_0)
@@ -208,7 +303,7 @@ while np.any(abs(error) > tol) and iteration < max_iter:
 
 print("The solution is")
 
-headers = ["ln_implied_prob:", "pole_adj_track_new:", "pole_adj_main:", "ema_past_bsn_n:", "combo_th:",
+headers = ["Temperature", "ln_implied_prob:", "pole_adj_track_new:", "pole_adj_main:", "ema_past_bsn_n:", "combo_th:",
            "prev_glicko1:", "prev_glicko2:", "prev_glicko3:", "gap_bsn_surf0:","gap_bsn_surf1:", "mean_jockey_gap_p1:",
            "mean_jockey_gap_p2:", "L1_weight_dif_l3r_avg1:", "L1_weight_dif_l3r_avg2:", "max_org_bsn_L60:", "max_org_bsn_L61:"]
 
